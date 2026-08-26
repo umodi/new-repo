@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Portfolio Tracker</title>
+  <link rel="stylesheet" href="style.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+</head>
+<body>
+
+<!-- ── AUTH OVERLAY ── -->
+<div id="auth-overlay" class="auth-overlay">
+  <div class="auth-card">
+    <div class="auth-logo">📈</div>
+    <div class="auth-brand">Portfolio Tracker Pro</div>
+    <div class="auth-sub">Track. Analyse. Win.</div>
+
+    <!-- Login -->
+    <form id="login-form" class="auth-form">
+      <div class="auth-field">
+        <label>Username</label>
+        <input type="text" id="login-username" placeholder="Enter username" autocomplete="username" required/>
+      </div>
+      <div class="auth-field">
+        <label>Password</label>
+        <input type="password" id="login-password" placeholder="Enter password" autocomplete="current-password" required/>
+      </div>
+      <div id="login-error" class="auth-error hidden"></div>
+      <div class="remember-row">
+        <label class="remember-label">
+          <input type="checkbox" id="remember-me"/> Remember me
+        </label>
+      </div>
+      <button type="submit" class="btn-auth">Login</button>
+    </form>
+
+    <div class="auth-footer-note">Internal use only — contact admin for access</div>
+  </div>
+</div>
+
+<!-- Floating background symbols -->
+<div class="floaters" id="floaters" aria-hidden="true"></div>
+
+<!-- NSE / BSE Ticker -->
+
+<!-- Sidebar -->
+<nav class="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-icon">📈</div>
+    <div>
+      <div class="brand-title">Portfolio</div>
+      <div class="brand-sub">Tracker Pro</div>
+    </div>
+  </div>
+  <ul class="nav-links">
+    <li><a href="#" class="nav-link active" data-page="dashboard">
+      <span class="nav-icon">🏆</span> Dashboard
+    </a></li>
+    <li><a href="#" class="nav-link" data-page="add-trade">
+      <span class="nav-icon">➕</span> Log Trade
+    </a></li>
+    <li><a href="#" class="nav-link" data-page="history">
+      <span class="nav-icon">📋</span> Trade History
+    </a></li>
+    <li><a href="#" class="nav-link" data-page="manage">
+      <span class="nav-icon">⚙️</span> Manage
+    </a></li>
+    <li><a href="#" class="nav-link" data-page="guide">
+      <span class="nav-icon">📖</span> User Guide
+    </a></li>
+  </ul>
+  <div class="sidebar-footer">
+    <div class="footer-label">All amounts in ₹</div>
+    <div class="footer-user" id="footer-user"></div>
+    <button class="btn-theme" id="btn-theme" title="Toggle light/dark mode">☀ Light mode</button>
+    <button class="btn-logout" id="btn-logout">⏏ Logout</button>
+  </div>
+</nav>
+
+<!-- Main content -->
+<main class="main">
+
+  <!-- ── DASHBOARD ── -->
+  <section id="page-dashboard" class="page active">
+    <div class="page-header">
+      <h1>Dashboard</h1>
+      <div class="header-filters">
+        <select id="f-stakeholder" class="filter-select"><option value="">All stakeholders</option></select>
+        <select id="f-stock" class="filter-select"><option value="">All stocks</option></select>
+        <select id="f-type" class="filter-select">
+          <option value="">Profit &amp; Loss</option>
+          <option value="profit">Profit only</option>
+          <option value="loss">Loss only</option>
+        </select>
+        <input type="date" id="f-from" class="filter-date" placeholder="From"/>
+        <input type="date" id="f-to" class="filter-date" placeholder="To"/>
+        <button class="btn-reset" id="reset-filters">Reset</button>
+        <div class="quick-dates" id="dash-quick-dates">
+          <button class="btn-quick" data-range="today">Today</button>
+          <button class="btn-quick" data-range="week">Week</button>
+          <button class="btn-quick" data-range="month">Month</button>
+          <button class="btn-quick" data-range="year">Year</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Empty state -->
+    <div id="dash-empty-state" class="empty-state-card hidden">
+      <div class="empty-icon">📊</div>
+      <div class="empty-title">No data yet</div>
+      <div class="empty-desc">Get started in 3 steps:</div>
+      <ol class="empty-steps">
+        <li>Go to <strong>Manage</strong> → add stakeholders &amp; stocks</li>
+        <li>Go to <strong>Log Trade</strong> → record your first trade</li>
+        <li>Come back here to see the dashboard fill up</li>
+      </ol>
+    </div>
+
+    <!-- Hero today banner -->
+    <div id="today-hero" class="hero-banner hidden">
+      <div class="hero-crown">👑</div>
+      <div class="hero-text">
+        <div class="hero-label">Today's Hero</div>
+        <div class="hero-name" id="hero-name">—</div>
+      </div>
+      <div class="hero-amount" id="hero-amount"></div>
+    </div>
+
+    <!-- Stat tiles -->
+    <div class="stats-row">
+      <div class="stat-card profit">
+        <div class="stat-label">Total Profit</div>
+        <div class="stat-value" id="stat-profit">₹0</div>
+      </div>
+      <div class="stat-card loss">
+        <div class="stat-label">Total Loss</div>
+        <div class="stat-value" id="stat-loss">₹0</div>
+      </div>
+      <div class="stat-card net" id="net-card">
+        <div class="stat-label">Net P&amp;L</div>
+        <div class="stat-value" id="stat-net">₹0</div>
+      </div>
+      <div class="stat-card neutral">
+        <div class="stat-label">Total Trades</div>
+        <div class="stat-value" id="stat-trades">0</div>
+      </div>
+      <div class="stat-card neutral">
+        <div class="stat-label">Biggest Single Trade</div>
+        <div class="stat-value" id="stat-biggest">₹0</div>
+      </div>
+    </div>
+
+    <!-- Market Sentiment — Bull vs Bear -->
+    <div class="sentiment-row" id="sentiment-row">
+
+      <div class="animal-card bull-card" id="bull-card">
+        <div class="animal-glow" style="background:radial-gradient(circle,rgba(34,197,94,0.35) 0%,transparent 70%)"></div>
+        <div class="animal-emoji">🐂</div>
+        <div class="animal-chart-lines">
+          <svg viewBox="0 0 120 40" fill="none" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.6">
+            <polyline points="0,35 20,28 40,32 60,18 80,20 100,8 120,4"/>
+            <circle cx="120" cy="4" r="3.5" fill="#22c55e"/>
+          </svg>
+        </div>
+        <div class="animal-label bull-label">BULL RUN</div>
+        <div class="animal-stat" id="bull-stat">+₹0.00</div>
+      </div>
+
+      <div class="sentiment-center">
+        <div class="sentiment-vs">VS</div>
+        <div class="market-mood" id="market-mood">
+          <div class="mood-icon" id="mood-icon">📊</div>
+          <div class="mood-text" id="mood-text">Awaiting Trades</div>
+        </div>
+        <div class="exchange-badges">
+          <span class="ex-badge nse-badge">NSE</span>
+          <span class="ex-badge bse-badge">BSE</span>
+        </div>
+      </div>
+
+      <div class="animal-card bear-card" id="bear-card">
+        <div class="animal-glow" style="background:radial-gradient(circle,rgba(239,68,68,0.35) 0%,transparent 70%)"></div>
+        <div class="animal-emoji">🐻</div>
+        <div class="animal-chart-lines">
+          <svg viewBox="0 0 120 40" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.6">
+            <polyline points="0,5 20,10 40,8 60,20 80,18 100,32 120,36"/>
+            <circle cx="120" cy="36" r="3.5" fill="#ef4444"/>
+          </svg>
+        </div>
+        <div class="animal-label bear-label">BEAR TRAP</div>
+        <div class="animal-stat" id="bear-stat">-₹0.00</div>
+      </div>
+
+    </div>
+
+    <!-- Chart + Leaderboard -->
+    <div class="dashboard-grid">
+      <div class="card chart-card">
+        <div class="card-title">Portfolio Breakdown</div>
+        <div class="chart-wrap">
+          <canvas id="pie-chart"></canvas>
+          <div class="chart-empty hidden" id="chart-empty">No data yet — log your first trade!</div>
+        </div>
+      </div>
+
+      <div class="card leaderboard-card">
+        <div class="card-title">🏆 Leaderboard</div>
+        <div id="leaderboard-list" class="leaderboard-list"></div>
+      </div>
+    </div>
+
+    <!-- Stock performance -->
+    <div class="card">
+      <div class="card-title">Stock Performance</div>
+      <div id="stock-perf" class="stock-perf-list"></div>
+    </div>
+  </section>
+
+  <!-- ── ADD TRADE ── -->
+  <section id="page-add-trade" class="page">
+    <div class="page-header"><h1>Log a Trade</h1></div>
+    <div class="form-card">
+      <form id="trade-form">
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Stakeholder</label>
+            <select id="trade-stakeholder" required>
+              <option value="">Select stakeholder…</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Stock</label>
+            <div class="stock-row">
+              <select id="trade-stock" required>
+                <option value="">Select stock…</option>
+              </select>
+              <button type="button" class="btn-add-stock" id="btn-inline-stock" title="Add new stock">+</button>
+            </div>
+            <div id="price-hint" class="price-hint hidden"></div>
+            <div id="new-stock-row" class="new-stock-row hidden">
+              <input type="text" id="new-stock-name" placeholder="Stock symbol (e.g. INFY)" maxlength="20"/>
+              <button type="button" class="btn-confirm-stock" id="btn-confirm-stock">Add</button>
+              <button type="button" class="btn-cancel-stock" id="btn-cancel-stock">✕</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Buy Price (₹)</label>
+            <div class="amount-input-wrap">
+              <span class="currency-prefix">₹</span>
+              <input type="number" id="trade-buy-price" min="0.01" step="0.01" placeholder="0.00" required/>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Sell Price (₹)</label>
+            <div class="amount-input-wrap">
+              <span class="currency-prefix">₹</span>
+              <input type="number" id="trade-sell-price" min="0.01" step="0.01" placeholder="0.00" required/>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Quantity <span class="optional">(shares / units)</span></label>
+          <input type="number" id="trade-quantity" min="1" step="1" placeholder="e.g. 100" required/>
+        </div>
+
+        <!-- Live P&L preview -->
+        <div class="calc-preview hidden" id="calc-preview">
+          <div class="calc-type-badge" id="calc-type-badge"></div>
+          <div class="calc-detail" id="calc-detail"></div>
+        </div>
+
+        <div class="form-group">
+          <label>Date of Trade</label>
+          <input type="date" id="trade-date" required/>
+        </div>
+
+        <div class="form-group">
+          <label>Notes <span class="optional">(optional)</span></label>
+          <textarea id="trade-notes" rows="2" placeholder="Any remarks…"></textarea>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn-primary" id="submit-trade">Submit Trade</button>
+        </div>
+
+        <div id="trade-success" class="success-msg hidden">✅ Trade logged successfully!</div>
+        <div id="trade-error" class="error-msg hidden"></div>
+      </form>
+    </div>
+  </section>
+
+  <!-- ── HISTORY ── -->
+  <section id="page-history" class="page">
+    <div class="page-header">
+      <h1>Trade History</h1>
+      <div class="header-filters">
+        <select id="h-stakeholder" class="filter-select"><option value="">All stakeholders</option></select>
+        <select id="h-stock" class="filter-select"><option value="">All stocks</option></select>
+        <select id="h-type" class="filter-select">
+          <option value="">All types</option>
+          <option value="profit">Profit</option>
+          <option value="loss">Loss</option>
+        </select>
+        <input type="date" id="h-from" class="filter-date"/>
+        <input type="date" id="h-to" class="filter-date"/>
+        <button class="btn-reset" id="h-reset">Reset</button>
+        <div class="quick-dates">
+          <button class="btn-quick" data-range="today" data-target="history">Today</button>
+          <button class="btn-quick" data-range="week"  data-target="history">Week</button>
+          <button class="btn-quick" data-range="month" data-target="history">Month</button>
+          <button class="btn-quick" data-range="year"  data-target="history">Year</button>
+        </div>
+        <button class="btn-csv" id="btn-csv">⬇ CSV</button>
+      </div>
+    </div>
+    <div class="history-search-wrap">
+      <input type="text" id="h-search" class="history-search" placeholder="🔍  Search by name, stock or notes…"/>
+    </div>
+    <div class="card">
+      <div class="table-wrap">
+        <table class="data-table" id="history-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Stakeholder</th>
+              <th>PAN</th>
+              <th>Stock</th>
+              <th>Buy ₹</th>
+              <th>Sell ₹</th>
+              <th>Qty</th>
+              <th>Type</th>
+              <th>P&amp;L</th>
+              <th>Return %</th>
+              <th>Notes</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="history-body"></tbody>
+        </table>
+        <div id="history-empty" class="table-empty hidden">No trades found.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── MANAGE ── -->
+  <section id="page-manage" class="page">
+    <div class="page-header"><h1>Manage</h1></div>
+    <div class="manage-grid">
+      <!-- Stakeholders -->
+      <div class="card">
+        <div class="card-title">Stakeholders</div>
+        <form id="add-stakeholder-form" class="inline-form">
+          <input type="text" id="new-s-name" placeholder="Full name" required/>
+          <input type="text" id="new-s-pan" placeholder="PAN number" maxlength="10" required/>
+          <button type="submit" class="btn-primary sm">Add</button>
+        </form>
+        <div id="stakeholders-list" class="manage-list"></div>
+      </div>
+      <!-- Stocks -->
+      <div class="card">
+        <div class="card-title">Stocks</div>
+        <form id="add-stock-form" class="inline-form">
+          <input type="text" id="new-stock-sym" placeholder="Stock symbol (e.g. TCS)" maxlength="20" required/>
+          <button type="submit" class="btn-primary sm">Add</button>
+        </form>
+        <div id="stocks-list" class="manage-list"></div>
+      </div>
+    </div>
+
+    <!-- Backup & Restore -->
+    <div class="card backup-card">
+      <div class="card-title">💾 Backup &amp; Restore</div>
+      <p class="backup-desc">Export all data to a JSON file to share with another user, or import a backup to restore data on this device.</p>
+      <div class="backup-actions">
+        <button class="btn-export" id="btn-export">⬇ Export Data</button>
+        <label class="btn-import" for="import-file-input">⬆ Import Data</label>
+        <input type="file" id="import-file-input" accept=".json" style="display:none"/>
+      </div>
+      <div id="import-status" class="import-status hidden"></div>
+    </div>
+  </section>
+
+  <!-- ── USER GUIDE ── -->
+  <section id="page-guide" class="page">
+    <div class="page-header"><h1>📖 User Guide</h1></div>
+
+    <!-- Warning banner -->
+    <div class="guide-warning-banner">
+      ⚠️ <strong>Important:</strong> All data on this site is stored only in your browser on this device. It is never uploaded to any server. Read this guide to understand the risks before using the app.
+    </div>
+
+    <!-- Features -->
+    <div class="guide-section">
+      <div class="guide-section-title">🗺️ Features Overview</div>
+      <div class="guide-grid">
+        <div class="guide-feature-card">
+          <div class="gf-icon">🏆</div>
+          <div class="gf-title">Dashboard</div>
+          <div class="gf-desc">View total profit, loss, and net P&L across all stakeholders. Filter by stakeholder, stock, trade type, and date range. Includes a live leaderboard, market sentiment indicator, and stock performance breakdown.</div>
+        </div>
+        <div class="guide-feature-card">
+          <div class="gf-icon">➕</div>
+          <div class="gf-title">Log Trade</div>
+          <div class="gf-desc">Record a new trade by selecting a stakeholder and stock, then entering buy price, sell price, and quantity. The app automatically calculates profit/loss amount, trade type, and return percentage — no manual entry needed.</div>
+        </div>
+        <div class="guide-feature-card">
+          <div class="gf-icon">📋</div>
+          <div class="gf-title">Trade History</div>
+          <div class="gf-desc">Browse all past trades with full details — buy/sell price, quantity, P&L, and return %. Filter by stakeholder, stock, type, or date. Use the ✏️ Edit button to correct a trade or 🗑️ Delete to remove it.</div>
+        </div>
+        <div class="guide-feature-card">
+          <div class="gf-icon">⚙️</div>
+          <div class="gf-title">Manage</div>
+          <div class="gf-desc">Add or remove stakeholders (with PAN numbers) and stocks. Also contains the Backup & Restore panel to export your data as a file or import a backup from another device.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Data storage risks -->
+    <div class="guide-section">
+      <div class="guide-section-title">🗄️ Where Your Data Lives</div>
+      <p class="guide-para">This app stores all data in your browser's <strong>localStorage</strong> — a small database built into every browser. It is saved on <strong>this device, in this browser only</strong>. No data is ever sent to the internet, GitHub, or any server.</p>
+      <p class="guide-para">This means:</p>
+      <div class="guide-table-wrap">
+        <table class="guide-table">
+          <thead><tr><th>Scenario</th><th>Data safe?</th></tr></thead>
+          <tbody>
+            <tr><td>Close the browser tab</td><td class="safe">✅ Safe — data persists</td></tr>
+            <tr><td>Restart the browser</td><td class="safe">✅ Safe — data persists</td></tr>
+            <tr><td>Restart the computer</td><td class="safe">✅ Safe — data persists</td></tr>
+            <tr><td>Open on a different device</td><td class="risk">❌ Empty — different localStorage</td></tr>
+            <tr><td>Open in Incognito / Private mode</td><td class="risk">❌ Empty — incognito has its own storage, lost on close</td></tr>
+            <tr><td>A different person opens the site URL</td><td class="safe">✅ Safe — they see their own empty app, not your data</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- When data is lost -->
+    <div class="guide-section">
+      <div class="guide-section-title">⚠️ When Data Can Be Lost</div>
+      <p class="guide-para">The following actions <strong>permanently delete all data</strong> from this app and cannot be undone:</p>
+      <div class="guide-risk-list">
+        <div class="guide-risk-item high">
+          <div class="risk-badge high">HIGH RISK</div>
+          <div class="risk-text">
+            <strong>Clearing browser data</strong> — In Chrome: Settings → Privacy → Clear browsing data → checking "Cookies and site data" or "Hosted app data" wipes localStorage completely.
+          </div>
+        </div>
+        <div class="guide-risk-item high">
+          <div class="risk-badge high">HIGH RISK</div>
+          <div class="risk-text">
+            <strong>Uninstalling the browser</strong> — Removing Chrome/Edge/Firefox deletes all stored data.
+          </div>
+        </div>
+        <div class="guide-risk-item high">
+          <div class="risk-badge high">HIGH RISK</div>
+          <div class="risk-text">
+            <strong>Windows reset or new machine</strong> — A factory reset or switching computers loses all data.
+          </div>
+        </div>
+        <div class="guide-risk-item medium">
+          <div class="risk-badge medium">CAUTION</div>
+          <div class="risk-text">
+            <strong>Using Incognito mode</strong> — Data entered in an Incognito window is wiped when the window closes. Always use a regular browser window.
+          </div>
+        </div>
+        <div class="guide-risk-item medium">
+          <div class="risk-badge medium">CAUTION</div>
+          <div class="risk-text">
+            <strong>Storage limit</strong> — Browsers allow up to ~5 MB of localStorage. This is enough for several thousand trades. If the limit is hit, new data may not save.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Backup instructions -->
+    <div class="guide-section">
+      <div class="guide-section-title">💾 How to Back Up & Share Data</div>
+      <p class="guide-para">Use the <strong>Backup & Restore</strong> feature (in Manage) regularly to protect your data and share it between users.</p>
+      <div class="guide-steps">
+        <div class="guide-step"><span class="step-num">1</span><div><strong>Export (User A)</strong> — Go to Manage → Backup &amp; Restore → click <em>⬇ Export Data</em>. A file named <code>portfolio-backup-YYYY-MM-DD.json</code> downloads to your device.</div></div>
+        <div class="guide-step"><span class="step-num">2</span><div><strong>Share the file</strong> — Send the file via WhatsApp, email, or Teams to the other user.</div></div>
+        <div class="guide-step"><span class="step-num">3</span><div><strong>Import (User B)</strong> — Go to Manage → Backup &amp; Restore → click <em>⬆ Import Data</em>. Select the received file. A confirmation prompt will show what's in the file before anything is changed.</div></div>
+        <div class="guide-step"><span class="step-num">4</span><div><strong>Confirm</strong> — Click OK. The import replaces all current data on this device with the backup. This cannot be undone — export your own data first if needed.</div></div>
+      </div>
+      <div class="guide-tip">💡 <strong>Best practice:</strong> Export a backup after every significant session and store the file in a shared folder (Google Drive, OneDrive) as an additional safety net.</div>
+    </div>
+
+    <!-- Login -->
+    <div class="guide-section">
+      <div class="guide-section-title">🔐 Login & Access</div>
+      <p class="guide-para">The app uses a single shared login. Credentials are fixed and cannot be changed from within the app. Contact the administrator if you need the username or password.</p>
+      <p class="guide-para">Your session stays active until you click <strong>⏏ Logout</strong> or close the browser tab. Opening a new tab will require logging in again.</p>
+    </div>
+
+  </section>
+
+</main>
+
+<!-- ── EDIT TRADE MODAL ── -->
+<div id="edit-modal" class="modal-backdrop hidden">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Edit Trade</h2>
+      <button class="modal-close" id="modal-close">✕</button>
+    </div>
+    <form id="edit-form">
+      <input type="hidden" id="edit-id"/>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Stakeholder</label>
+          <select id="edit-stakeholder" required></select>
+        </div>
+        <div class="form-group">
+          <label>Stock</label>
+          <select id="edit-stock" required></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Buy Price (₹)</label>
+          <div class="amount-input-wrap">
+            <span class="currency-prefix">₹</span>
+            <input type="number" id="edit-buy-price" min="0.01" step="0.01" required/>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Sell Price (₹)</label>
+          <div class="amount-input-wrap">
+            <span class="currency-prefix">₹</span>
+            <input type="number" id="edit-sell-price" min="0.01" step="0.01" required/>
+          </div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Quantity</label>
+        <input type="number" id="edit-quantity" min="1" step="1" required/>
+      </div>
+      <div class="calc-preview hidden" id="edit-calc-preview">
+        <div class="calc-type-badge" id="edit-calc-badge"></div>
+        <div class="calc-detail" id="edit-calc-detail"></div>
+      </div>
+      <div class="form-group">
+        <label>Date</label>
+        <input type="date" id="edit-date" required/>
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea id="edit-notes" rows="2"></textarea>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn-secondary" id="modal-cancel">Cancel</button>
+        <button type="submit" class="btn-primary">Save Changes</button>
+      </div>
+      <div id="edit-error" class="error-msg hidden"></div>
+    </form>
+  </div>
+</div>
+
+<!-- ── DELETE CONFIRM MODAL ── -->
+<div id="delete-modal" class="modal-backdrop hidden">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <h2>Delete Trade</h2>
+      <button class="modal-close" id="delete-modal-close">✕</button>
+    </div>
+    <p class="delete-msg">Are you sure you want to delete this trade? This cannot be undone.</p>
+    <div class="form-actions">
+      <button type="button" class="btn-secondary" id="delete-cancel">Cancel</button>
+      <button type="button" class="btn-danger" id="delete-confirm">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
